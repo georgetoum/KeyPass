@@ -1,0 +1,22 @@
+{
+  "name": "keypass",
+  "version": "1.0.0",
+  "description": "Password Manager",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^36.2.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.2.0",
+    "@capacitor/cli": "^7.2.0",
+    "@capacitor/core": "^7.2.0",
+    "electron-reloader": "^1.2.3",
+    "firebase": "^11.7.1"
+  }
+}

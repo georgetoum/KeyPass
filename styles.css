@@ -1,0 +1,216 @@
+/* styles.css */
+
+:root {
+  --purple: #6a0dad;
+  --orange: #ff6f00;
+  --white: #ffffff;
+  --glass: rgba(255, 255, 255, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, var(--purple), var(--orange));
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  padding: 1rem;
+}
+
+.container {
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 2rem;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 0.7rem;
+  margin-bottom: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  caret-color: var(--white);
+}
+
+input:focus {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+button {
+  width: 100%;
+  padding: 0.7rem;
+  margin-top: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--orange);
+  color: var(--white);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #e65c00;
+}
+
+#message {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #ffe0b2;
+  word-wrap: break-word;
+}
+
+.forgot-link {
+  color: rgba(255, 255, 255, 0.9);;
+  font-size: 0.9rem;
+  text-align: right;
+  display: block;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+  color: #ffa040;
+}
+
+#reset-container input,
+#reset-container button {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+#reset-container input {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  caret-color: var(--white);
+}
+
+#reset-container button {
+  background-color: var(--orange);
+  color: var(--white);
+  cursor: pointer;
+}
+
+#reset-container button:hover {
+  background-color: #e65c00;
+}
+
+#reset-form input,
+#reset-form button {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+#reset-form input {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  caret-color: var(--white);
+}
+
+#reset-form button {
+  background-color: var(--orange);
+  color: var(--white);
+  cursor: pointer;
+}
+
+#reset-form button:hover {
+  background-color: #e65c00;
+}
+
+.status-message {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  color: #ffe0b2;
+  text-align: center;
+}
+
+.logo {
+  width: 200px;
+  height: auto;
+  margin-bottom: 1.5rem;
+}
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding: 0.7rem;
+  padding-right: 2.7rem; /* space for the eye icon */
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  height: 42px; /* consistent height */
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  line-height: 1.2;
+}
+
+.eye-button {
+  all: unset; /* REMOVE all default button styles */
+  position: absolute;
+  top: 36%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  width: 24px;
+}
+
+
+.eye-button:hover {
+  background: none !important;
+}
+
+.eye-button svg {
+  stroke: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.eye-button:hover svg {
+  stroke: #fff;
+}

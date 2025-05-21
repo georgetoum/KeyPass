@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KeyPass Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      deleteDoc,
+      doc,
+      updateDoc, 
+      getDoc // This is for getting the document if needed
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import CryptoJS from "https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/+esm";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnyzW88pY7kfdY4MrvXjG_o59eDowGohI",
+      authDomain: "keypass-eeb42.firebaseapp.com",
+      projectId: "keypass-eeb42",
+      storageBucket: "keypass-eeb42.firebasestorage.app",
+      messagingSenderId: "1025572437764",
+      appId: "1:1025572437764:web:16c3e02e70ae3750375a51"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const ENCRYPTION_KEY = "your-32-char-secret-key"; // Use something strong in production
+  
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        window.location.href = "index.html";
+      }
+    });
+  
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("toggle-password-visibility").addEventListener("click", () => {
+        const passwordInput = document.getElementById("password");
+        const eyeIcon = document.getElementById("eye-icon");
+        const isHidden = passwordInput.type === "password";
+
+        passwordInput.type = isHidden ? "text" : "password";
+
+        if (isHidden) {
+            eyeIcon.innerHTML = `<path d="M17.94 17.94A10.94 10.94 0 0112 20c-7 0-11-8-11-8a21.21 21.21 0 014.79-5.83M1 1l22 22" />`;
+        } else {
+            eyeIcon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>`;
+        }
+      });
+
+      document.getElementById("show-passwords").addEventListener("click", () => {
+        loadPasswords();
+      });
+
+      const categorySelect = document.getElementById("category");
+      const customCategoryInput = document.getElementById("custom-category");
+
+      categorySelect.addEventListener("change", () => {
+        if (categorySelect.value === "Other") {
+          customCategoryInput.style.display = "block";
+          customCategoryInput.setAttribute("required", "true");
+        } else {
+          customCategoryInput.style.display = "none";
+          customCategoryInput.removeAttribute("required");
+        }
+      });
+
+      const passwordInput = document.getElementById("password");
+      const strengthIndicator = document.getElementById("strength-indicator");
+  
+      document.getElementById("logout").addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.href = "index.html";
+      });
+
+      // Password strength indicator
+      passwordInput.addEventListener("input", () => {
+        const password = passwordInput.value;
+        let strength = 0;
+        if (password.length >= 8) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+  
+        strengthIndicator.className = "";
+        if (!password) {
+          strengthIndicator.textContent = "";
+        } else if (strength <= 1) {
+          strengthIndicator.textContent = "Weak";
+          strengthIndicator.classList.add("strength-weak");
+        } else if (strength === 2 || strength === 3) {
+          strengthIndicator.textContent = "Medium";
+          strengthIndicator.classList.add("strength-medium");
+        } else {
+          strengthIndicator.textContent = "Strong";
+          strengthIndicator.classList.add("strength-strong");
+        }
+      });
+
+      // Password generator
+      document.getElementById("generate-password").addEventListener("click", () => {
+        const length = 16;
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+{}[]<>?";
+        let password = "";
+  
+        for (let i = 0; i < length; i++) {
+          password += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+  
+        passwordInput.value = password;
+        passwordInput.dispatchEvent(new Event("input"));
+  
+        navigator.clipboard.writeText(password).then(() => {
+          const btn = document.getElementById("generate-password");
+          const original = btn.textContent;
+          btn.textContent = "Copied!";
+          setTimeout(() => (btn.textContent = original), 1500);
+        });
+      });
+
+      // Save password
+      document.getElementById("password-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+  
+        const site = document.getElementById("site").value.trim();
+        const url = document.getElementById("url").value.trim();
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+        let category = categorySelect.value;
+        if (category === "Other") {
+            category = customCategoryInput.value.trim();
+        }
+        if (!category) return;
+
+  
+        if (!site || !url || !username || !password || !category) return;
+  
+        const encryptedPassword = CryptoJS.AES.encrypt(password, ENCRYPTION_KEY).toString();
+  
+        try {
+          const user = auth.currentUser;
+          if (!user) throw new Error("Not authenticated.");
+  
+          await addDoc(collection(db, "users", user.uid, "passwords"), {
+            site,
+            url,
+            username,
+            password: encryptedPassword,
+            category,
+            createdAt: new Date()
+          });
+  
+          e.target.reset();
+          strengthIndicator.textContent = "";
+          await loadPasswords();
+        } catch (err) {
+          console.error("Error saving password:", err);
+          alert("Failed to save password.");
+        }
+      });
+
+      let passwordsVisible = false;
+      const toggleButton = document.getElementById("show-passwords");
+      const passwordList = document.getElementById("password-list");
+      const searchInput = document.getElementById("search");
+
+      toggleButton.addEventListener("click", async () => {
+        if (passwordsVisible) {
+            toggleButton.textContent = "Show Saved Passwords";
+            passwordList.style.display = "none";
+            setTimeout(() => {
+            searchInput.style.display = "none";
+            }, 150);
+            passwordsVisible = false;
+        } else {
+            await loadPasswords();
+            passwordList.style.display = "block";
+            toggleButton.textContent = "Hide Saved Passwords";
+            passwordsVisible = true;
+        }
+      });
+
+      // Load & render passwords
+async function loadPasswords() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const q = query(collection(db, "users", user.uid, "passwords"));
+    const querySnapshot = await getDocs(q);
+
+    const list = document.getElementById("password-list");
+    const searchInput = document.getElementById("search");
+
+    list.innerHTML = "";
+
+    if (querySnapshot.empty) {
+        searchInput.style.display = "none";
+        list.innerHTML = "<p style='text-align: center; color: #bbb;'>No saved passwords found.</p>";
+        return;
+    }
+
+    searchInput.style.display = "block";
+
+    querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const decryptedPassword = CryptoJS.AES.decrypt(data.password, ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+        const passwordId = `pwd-${doc.id}`;
+
+        const entry = document.createElement("div");
+        entry.className = "password-entry";
+        entry.innerHTML = `
+            <div class="password-details">
+                <h4>
+                    <span id="site-${doc.id}">${data.site}</span>
+                    <button class="edit-pencil" data-id="${doc.id}" data-field="site">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+                            <path d="M12.146 0l3.708 3.708a1 1 0 0 1 0 1.414l-8 8A1 1 0 0 1 7.707 13h-2a1 1 0 0 1-1-1V8.707a1 1 0 0 1 .293-.707l8-8a1 1 0 0 1 1.414 0z"/>
+                        </svg>
+                    </button>
+                </h4>
+                <p><strong>URL:</strong> <span id="url-${doc.id}">${data.url}</span></p>
+                <p><strong>Username:</strong> <span id="username-${doc.id}">${data.username}</span></p>
+                <p><strong>Category:</strong> ${data.category}</p>
+                <p>
+                    <strong>Password:</strong>
+                    <span id="password-${doc.id}">••••••••</span>
+                    <button data-target="password-${doc.id}" data-password="${decryptedPassword}" class="toggle-password">Show</button>
+                    <button data-password="${decryptedPassword}" class="copy-password">Copy</button>
+                    <button class="delete-password" data-id="${doc.id}">Delete</button>
+                </p>
+            </div>
+            <div class="password-edit-form" id="edit-form-${doc.id}" style="display: none;">
+                <input type="text" class="edit-field" id="edit-site-${doc.id}" value="${data.site}" />
+                <input type="text" class="edit-field" id="edit-url-${doc.id}" value="${data.url}" />
+                <input type="text" class="edit-field" id="edit-username-${doc.id}" value="${data.username}" />
+                <input type="password" class="edit-field" id="edit-password-${doc.id}" value="${decryptedPassword}" />
+                <select class="edit-field" id="edit-category-${doc.id}">
+                    <option value="Personal" ${data.category === "Personal" ? "selected" : ""}>Personal</option>
+                    <option value="Work" ${data.category === "Work" ? "selected" : ""}>Work</option>
+                    <option value="Finance" ${data.category === "Finance" ? "selected" : ""}>Finance</option>
+                    <option value="Social" ${data.category === "Social" ? "selected" : ""}>Social</option>
+                    <option value="Other" ${data.category === "Other" ? "selected" : ""}>Other</option>
+                </select>
+                <button class="save-edit" data-id="${doc.id}">Save</button>
+                <button class="cancel-edit" data-id="${doc.id}">Cancel</button>
+            </div>
+        `;
+        list.appendChild(entry);
+    });
+    // Attach search filter after rendering
+searchInput.addEventListener("input", () => {
+  const query = searchInput.value.toLowerCase();
+  const entries = list.querySelectorAll(".password-entry");
+
+  entries.forEach(entry => {
+    const site = entry.querySelector("h4 span")?.textContent.toLowerCase() || "";
+    const url = entry.querySelector("p:nth-child(2) span")?.textContent.toLowerCase() || "";
+    const username = entry.querySelector("p:nth-child(3) span")?.textContent.toLowerCase() || "";
+
+    if (site.includes(query) || url.includes(query) || username.includes(query)) {
+      entry.style.display = "block";
+    } else {
+      entry.style.display = "none";
+    }
+  });
+});
+
+    // Edit button functionality
+    document.querySelectorAll(".edit-pencil").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            const passwordId = e.target.getAttribute("data-id");
+            const field = e.target.getAttribute("data-field");
+
+            const entry = e.target.closest(".password-entry");
+            const details = entry.querySelector(".password-details");
+            const editForm = entry.querySelector(".password-edit-form");
+
+            // Show the edit form and hide the details
+            details.style.display = "none";
+            editForm.style.display = "block";
+
+            // Focus on the correct field for editing
+            document.getElementById(`edit-${field}-${passwordId}`).focus();
+        });
+    });
+
+    // Save edited data
+    document.querySelectorAll(".save-edit").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+            const passwordId = e.target.getAttribute("data-id");
+
+            const updatedSite = document.getElementById(`edit-site-${passwordId}`).value;
+            const updatedUrl = document.getElementById(`edit-url-${passwordId}`).value;
+            const updatedUsername = document.getElementById(`edit-username-${passwordId}`).value;
+            const updatedPassword = document.getElementById(`edit-password-${passwordId}`).value;
+            const updatedCategory = document.getElementById(`edit-category-${passwordId}`).value;
+
+            if (!updatedSite || !updatedUrl || !updatedUsername || !updatedPassword || !updatedCategory) {
+                alert("Please fill all fields.");
+                return;
+            }
+
+            const encryptedPassword = CryptoJS.AES.encrypt(updatedPassword, ENCRYPTION_KEY).toString();
+
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    alert("User not authenticated.");
+                    return;
+                }
+
+                // Update Firestore document
+                await updateDoc(doc(db, "users", user.uid, "passwords", passwordId), {
+                    site: updatedSite,
+                    url: updatedUrl,
+                    username: updatedUsername,
+                    password: encryptedPassword,
+                    category: updatedCategory,
+                });
+
+                await loadPasswords(); // Reload passwords after update
+            } catch (err) {
+                console.error("Error updating password:", err);
+                alert("Failed to update password.");
+            }
+        });
+    });
+
+    // Cancel editing
+    document.querySelectorAll(".cancel-edit").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            const passwordId = e.target.getAttribute("data-id");
+            const entry = e.target.closest(".password-entry");
+            const details = entry.querySelector(".password-details");
+            const editForm = entry.querySelector(".password-edit-form");
+
+            // Revert to original details view
+            details.style.display = "block";
+            editForm.style.display = "none";
+        });
+    });
+
+    // Reinitialize Show, Copy, and Delete buttons after every render
+    document.querySelectorAll(".toggle-password").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const targetId = btn.getAttribute("data-target");
+            const realPassword = btn.getAttribute("data-password");
+            const span = document.getElementById(targetId);
+            if (btn.textContent === "Show") {
+                span.textContent = realPassword;
+                btn.textContent = "Hide";
+            } else {
+                span.textContent = "••••••••";
+                btn.textContent = "Show";
+            }
+        });
+    });
+
+    document.querySelectorAll(".copy-password").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+            const password = btn.getAttribute("data-password");
+            try {
+                await navigator.clipboard.writeText(password);
+                const original = btn.textContent;
+                btn.textContent = "Copied!";
+                setTimeout(() => {
+                    btn.textContent = original;
+                }, 1500);
+            } catch (err) {
+                console.error("Failed to copy password:", err);
+                alert("Failed to copy password.");
+            }
+        });
+    });
+
+    document.querySelectorAll(".delete-password").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+            const passwordId = e.target.getAttribute("data-id");
+            if (!confirm("Delete this entry?")) return;
+            try {
+                await deleteDoc(doc(db, "users", user.uid, "passwords", passwordId));
+                await loadPasswords(); // Reload passwords after deletion
+            } catch (err) {
+                alert("Failed to delete.");
+            }
+        });
+    });
+}
+
+
+      // Show/hide password
+      document.querySelectorAll(".toggle-password").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.getAttribute("data-target");
+          const realPassword = btn.getAttribute("data-password");
+          const span = document.getElementById(targetId);
+          if (btn.textContent === "Show") {
+            span.textContent = realPassword;
+            btn.textContent = "Hide";
+          } else {
+            span.textContent = "••••••••";
+            btn.textContent = "Show";
+          }
+        });
+      });
+
+      // Copy password
+      document.querySelectorAll(".copy-password").forEach((btn) => {
+        btn.addEventListener("click", async (event) => {
+          const password = btn.getAttribute("data-password");
+          try {
+            await navigator.clipboard.writeText(password);
+            const original = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(() => {
+              btn.textContent = original;
+            }, 1500);
+          } catch (err) {
+            console.error("Failed to copy password:", err);
+            alert("Failed to copy password.");
+          }
+        });
+      });
+
+      // Delete password
+      document.querySelectorAll(".delete-password").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const docId = btn.getAttribute("data-id");
+          if (!confirm("Delete this entry?")) return;
+          try {
+            await deleteDoc(doc(collection(db, "users", user.uid, "passwords"), docId));
+            await loadPasswords();
+          } catch (err) {
+            alert("Failed to delete.");
+          }
+        });
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="dashboard">
+    <header>
+        <h1>
+            <img src="logo2.png" alt="KeyPass Logo" class="logo" /> 
+          </h1>          
+      <button id="logout" class="logout">Logout</button>
+    </header>
+
+    <!-- Add New Password -->
+    <section class="form-section">
+      <form id="password-form">
+        <input type="text" id="site" placeholder="Website Name" required />
+        <input type="text" id="url" placeholder="Website URL" required />
+        <input type="text" id="username" placeholder="Username/Email" required />
+        
+
+        <div class="password-row">
+      <div class="password-input-wrapper">
+       <input type="password" id="password" placeholder="Password" required />
+        <button type="button" id="toggle-password-visibility" class="eye-button" aria-label="Toggle password visibility">
+          <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+      <button type="button" id="generate-password" class="generate-btn">Generate</button>
+      </div>
+<div id="strength-indicator"></div>
+
+
+        <select id="category" required>
+            <option value="" disabled selected>Select Category</option>
+            <option value="Personal">Personal</option>
+            <option value="Work">Work</option>
+            <option value="Finance">Finance</option>
+            <option value="Social">Social</option>
+            <option value="Other">Other</option>
+          </select>
+          <input type="text" id="custom-category" placeholder="Enter custom category" style="display: none; margin-top: 0.5rem;" />                   
+
+        <button type="submit" id="submit">Save Password</button>
+      </form>
+    </section>
+
+    <!-- Show Passwords Button -->
+    <button id="show-passwords" class="show-btn">Show Saved Passwords</button>
+
+    <!-- Search -->
+    <input type="text" id="search" placeholder="Search saved passwords..." style="display: none;" />
+
+    <!-- Password Entries -->
+    <section id="password-list"></section>
+
+  </div>
+</body>
+</html>
