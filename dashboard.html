@@ -32,7 +32,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const ENCRYPTION_KEY = "your-32-char-secret-key"; // Use something strong in production
+    const ENCRYPTION_KEY = "l5NLW2uDMZGJw8pRRos0vOhO+4R+Aqsp3mMdePQmEXrxNDd9svdq6YB2D+lmELSN"; // Use something strong in production
   
     onAuthStateChanged(auth, user => {
       if (!user) {
