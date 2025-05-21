@@ -48,9 +48,6 @@
 
 ## 🔒 Security
 
-All user data is stored securely and encrypted using Firebase’s authentication and database services. Passwords are encrypted before storage to ensure maximum protection and privacy.
+All user data is stored securely and encrypted using Firebase’s authentication and database services. Passwords are encrypted and hashed before storage to ensure maximum protection and privacy.
 
----
-
-## 📁 Project Structure (Simplified)
 
