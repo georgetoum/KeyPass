@@ -2,6 +2,8 @@
 
 **KeyPass** is a secure, cross-platform password manager built with the Electron framework using **Java**, **HTML**, and **CSS**. It connects to **Google Firebase** to allow users to manage their own encrypted accounts — enabling them to **save**, **edit**, **delete**, **view**, and **generate** strong passwords securely.
 
+> 📝 **Note:** This repository also contains a standalone C++ program (`password_manager.cpp`). It is **not related to the main KeyPass application**, but serves as a separate console-based password manager project. If you're interested in running the C++ version, check the [Additional File section](#-additional-file-password_managercpp) below for setup instructions.
+
 ---
 
 ## 🚀 Features
