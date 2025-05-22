@@ -5,7 +5,15 @@
 > 📝 **Note:** This repository also contains a standalone C++ program (`code_4_password_manager.cpp`). It is **not related to the main KeyPass application**, but serves as a separate console-based password manager project.
 
 ---
+# 📒 WORD
+   https://docs.google.com/document/d/1FykT1mOEPD3yGQDtLWu8F54Kv4MsJwx6/edit
+   
+---
 
+# 🎬 POWERPOINT
+   https://docs.google.com/presentation/d/1U0DFANDiaP-ibKmvdVXJBsJfNPuQ9xaHlMXQqLv4gjc/edit?slide=id.g35b978a4c12_2_75#slide=id.g35b978a4c12_2_75
+   
+---
 ## 🚀 Features
 
 - 🔐 User-specific encrypted accounts with Firebase
